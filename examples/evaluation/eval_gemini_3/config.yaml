@@ -1,0 +1,33 @@
+defaults:
+  - ../eval_default
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+default_chat_config:
+  generation_config:
+    temperature: 0.0
+    top_p: 0.95
+    top_k: 64
+    candidate_count: 1
+    max_output_tokens: 32768
+  safety_settings: []
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/gemini_3_pro
+  default_max_turns: 1
+
+run:
+  backend: "gemini"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  gemini:
+    api_key: ""               # or export GEMINI_API_KEY
+    model: "gemini-3-pro-preview"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0

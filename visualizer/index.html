@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rollouts Visualizer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .container { display: flex; height: 100vh; }
+
+        .sidebar {
+            width: 320px;
+            background: #fff;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .tag-selector {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .tag-selector h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-list { max-height: 200px; overflow-y: auto; }
+
+        .tag-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tag-item:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+        }
+
+        .tag-item.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .tag-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .tag-name { font-weight: 600; color: #2c3e50; font-size: 14px; }
+        .tag-model { font-size: 11px; color: #999; }
+        .tag-count { font-size: 12px; color: #666; }
+
+        .filters {
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .filter-group { margin-bottom: 15px; }
+
+        .filter-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            background: #fff;
+        }
+
+        .filter-group input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .statistics {
+            padding: 20px;
+            background: #f9f9f9;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .stat-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .stat-card h3 {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .stat-row:last-child { border-bottom: none; }
+        .stat-row-label { color: #666; }
+        .stat-row-value { font-weight: 600; color: #2c3e50; }
+
+        .success-rate { color: #27ae60; }
+        .failure-rate { color: #e74c3c; }
+
+        .rollouts-list { flex: 1; overflow-y: auto; padding: 20px; }
+
+        .rollout-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .rollout-card:hover {
+            border-color: #3498db;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .rollout-card.selected {
+            border-color: #2980b9;
+            background: #f0f8ff;
+        }
+
+        .rollout-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .rollout-id { font-weight: 600; color: #2c3e50; font-size: 14px; }
+
+        .rollout-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-failure { background: #f8d7da; color: #721c24; }
+        .badge-missing { background: #e0e0e0; color: #666; }
+
+        .rollout-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #666;
+            flex-wrap: wrap;
+        }
+
+        .rollout-meta span { display: flex; align-items: center; gap: 4px; }
+
+        .conversation {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .message { margin-bottom: 20px; animation: fadeIn 0.3s; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-role {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .message-role.system { color: #9b59b6; }
+        .message-role.user { color: #3498db; }
+        .message-role.assistant { color: #27ae60; }
+
+        .message-content {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+        }
+
+        .message.system .message-content { border-left-color: #9b59b6; }
+        .message.user .message-content { border-left-color: #3498db; }
+        .message.assistant .message-content { border-left-color: #27ae60; }
+
+        .message-text {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 14px;
+            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .message-text-raw {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            font-size: 13px;
+            color: #333;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .message-image {
+            margin-top: 10px;
+            max-width: 100%;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .empty-state-icon { font-size: 64px; margin-bottom: 20px; }
+        .empty-state-text { font-size: 18px; }
+
+        .rollout-count {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .think-block {
+            background: #fffbf0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 3px solid #f39c12;
+        }
+
+        .action-block {
+            background: #f0f8ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 3px solid #3498db;
+            font-family: monospace;
+        }
+
+        .metrics-panel {
+            background: #fff;
+            border-top: 1px solid #ddd;
+            position: relative;
+        }
+
+        .metrics-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: #f8f8f8;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .metrics-panel-header h3 {
+            font-size: 13px;
+            color: #666;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metrics-panel-toggle {
+            font-size: 16px;
+            color: #666;
+            transition: transform 0.3s ease;
+        }
+
+        .metrics-panel.collapsed .metrics-panel-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .metrics-panel-content {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            padding: 15px 20px;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+            max-height: 500px;
+        }
+
+        .metrics-panel.collapsed .metrics-panel-content {
+            max-height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        .metric-item { display: flex; flex-direction: column; }
+
+        .metric-label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="sidebar">
+        <div class="header">
+            <h1>Rollouts Visualizer</h1>
+        </div>
+
+        <div class="tag-selector">
+            <h3>Select Tag (Eval Module)</h3>
+            <div class="tag-list" id="tag-list">
+                <div class="loading">Loading tags...</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label for="success-metric-filter">Success Metric</label>
+                <select id="success-metric-filter">
+                    <option value="">All Rollouts</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="metric-value-filter-group" style="display: none;">
+                <label for="metric-value-filter">Metric Value</label>
+                <select id="metric-value-filter">
+                    <option value="">All</option>
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                    <option value="missing">Missing</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="scene-filter">Scene ID</label>
+                <select id="scene-filter">
+                    <option value="">All Scenes</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="action-len-filter">Action Length</label>
+                <select id="action-len-filter">
+                    <option value="">All Lengths</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="search-filter">Search Rollout ID</label>
+                <input type="text" id="search-filter" placeholder="Search...">
+            </div>
+        </div>
+
+        <div class="statistics">
+            <div class="stat-card" id="filter-metric-stats-card" style="display: none;">
+                <h3>Filter Metric Statistics</h3>
+                <div id="filter-metric-stats-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="rollout-count" id="rollout-count">
+            Select a tag to view rollouts
+        </div>
+
+        <div class="rollouts-list" id="rollouts-list">
+            <div class="empty-state">
+                <div class="empty-state-icon">📁</div>
+                <div class="empty-state-text">Select a tag to view rollouts</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content" style="border-left: 1px solid #ddd;">
+        <div class="header">
+            <h2 id="conversation-title">Select a rollout to view conversation</h2>
+        </div>
+
+        <div class="conversation" id="conversation">
+            <div class="empty-state">
+                <div class="empty-state-icon">💬</div>
+                <div class="empty-state-text">Select a rollout to view the conversation</div>
+            </div>
+        </div>
+
+        <div class="metrics-panel" id="metrics-panel" style="display: none;"></div>
+    </div>
+</div>
+
+<script>
+    let selectedTag = null;
+    let selectedModel = null;
+    let allRollouts = [];
+    let filteredRollouts = [];
+    let selectedRollout = null;
+    let tagStatistics = null;
+    let availableFilterMetrics = [];
+    let currentFilterMetricStats = null;
+
+    // Load tags on startup
+    async function loadTags() {
+        try {
+            const response = await fetch('/api/tags');
+            const tagsData = await response.json();
+            renderTagsList(tagsData);
+        } catch (error) {
+            console.error('Error loading tags:', error);
+            document.getElementById('tag-list').innerHTML =
+                '<div class="empty-state-text">Error loading tags</div>';
+        }
+    }
+
+    // Render tags list
+    function renderTagsList(tagsData) {
+        const tagListElement = document.getElementById('tag-list');
+        tagListElement.innerHTML = '';
+
+        Object.entries(tagsData).forEach(([model, tags]) => {
+            tags.forEach(tag => {
+                const tagItem = document.createElement('div');
+                tagItem.className = 'tag-item';
+
+                const header = document.createElement('div');
+                header.className = 'tag-item-header';
+
+                const name = document.createElement('div');
+                name.className = 'tag-name';
+                name.textContent = tag.name;
+
+                const count = document.createElement('div');
+                count.className = 'tag-count';
+                count.textContent = `${tag.rollout_count} rollouts`;
+
+                header.appendChild(name);
+                header.appendChild(count);
+
+                const modelLabel = document.createElement('div');
+                modelLabel.className = 'tag-model';
+                modelLabel.textContent = model;
+
+                tagItem.appendChild(header);
+                tagItem.appendChild(modelLabel);
+
+                // Pass the click event explicitly (avoid relying on global `event`)
+                tagItem.addEventListener('click', (evt) => {
+                    selectTag(model, tag.name, evt);
+                });
+
+                tagListElement.appendChild(tagItem);
+            });
+        });
+    }
+
+    // Select a tag
+    async function selectTag(model, tagName, evt) {
+        selectedModel = model;
+        selectedTag = tagName;
+
+        // Update UI selection state
+        document.querySelectorAll('.tag-item').forEach(item => item.classList.remove('selected'));
+        if (evt && evt.target) {
+            const item = evt.target.closest('.tag-item');
+            if (item) item.classList.add('selected');
+        }
+
+        // Load rollouts, statistics, and filter metrics in parallel
+        await Promise.all([
+            loadTagRollouts(model, tagName),
+            loadTagStatistics(model, tagName),
+            loadFilterMetrics(model, tagName)
+        ]);
+
+        applyFilters();
+    }
+
+    // Load rollouts for a tag
+    async function loadTagRollouts(model, tagName) {
+        try {
+            const response = await fetch(`/api/tags/${model}/${tagName}/rollouts`);
+            allRollouts = await response.json();
+        } catch (error) {
+            console.error('Error loading rollouts:', error);
+            allRollouts = [];
+        }
+    }
+
+    // Load statistics for a tag
+    async function loadTagStatistics(model, tagName) {
+        try {
+            const response = await fetch(`/api/tags/${model}/${tagName}/stats`);
+            tagStatistics = await response.json();
+            renderTagStatistics();
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+            tagStatistics = null;
+        }
+    }
+
+    // Load available filter metrics for a tag
+    async function loadFilterMetrics(model, tagName) {
+        try {
+            const response = await fetch(`/api/tags/${model}/${tagName}/filter_metrics`);
+            const data = await response.json();
+            availableFilterMetrics = data.filter_metrics;
+            updateFilterMetricsDropdown();
+        } catch (error) {
+            console.error('Error loading filter metrics:', error);
+            availableFilterMetrics = [];
+        }
+    }
+
+    // Update filter metrics dropdown
+    function updateFilterMetricsDropdown() {
+        const filterSelect = document.getElementById('success-metric-filter');
+        const currentValue = filterSelect.value;
+
+        filterSelect.innerHTML = '<option value="">All Rollouts</option>';
+        availableFilterMetrics.forEach(metric => {
+            const option = document.createElement('option');
+            option.value = metric;
+            option.textContent = metric;
+            filterSelect.appendChild(option);
+        });
+
+        if (availableFilterMetrics.includes(currentValue)) {
+            filterSelect.value = currentValue;
+        }
+    }
+
+    // Render tag statistics (populate dropdowns)
+    function renderTagStatistics() {
+        if (!tagStatistics) return;
+
+        updateSceneFilter(Object.keys(tagStatistics.by_scene).sort());
+        updateActionLenFilter(Object.keys(tagStatistics.by_action_len).sort((a, b) => {
+            const aLower = parseInt(a.match(/\d+/)[0]);
+            const bLower = parseInt(b.match(/\d+/)[0]);
+            return aLower - bLower;
+        }));
+    }
+
+    function updateSceneFilter(scenes) {
+        const sceneFilter = document.getElementById('scene-filter');
+        const currentValue = sceneFilter.value;
+
+        sceneFilter.innerHTML = '<option value="">All Scenes</option>';
+        scenes.forEach(scene => {
+            const option = document.createElement('option');
+            option.value = scene;
+            option.textContent = scene;
+            sceneFilter.appendChild(option);
+        });
+
+        if (scenes.includes(currentValue)) {
+            sceneFilter.value = currentValue;
+        }
+    }
+
+    function updateActionLenFilter(intervals) {
+        const actionLenFilter = document.getElementById('action-len-filter');
+        const currentValue = actionLenFilter.value;
+
+        actionLenFilter.innerHTML = '<option value="">All Lengths</option>';
+        intervals.forEach(interval => {
+            const option = document.createElement('option');
+            option.value = interval;
+            option.textContent = interval;
+            actionLenFilter.appendChild(option);
+        });
+
+        if (intervals.includes(currentValue)) {
+            actionLenFilter.value = currentValue;
+        }
+    }
+
+    function getIntervalLabel(length) {
+        if (length === null || length === undefined) return 'Unknown';
+        const intervals = [2, 5, 8, 11];
+        for (let i = 0; i < intervals.length; i++) {
+            if (length <= intervals[i]) {
+                const lower = i > 0 ? intervals[i-1] + 1 : 0;
+                return `[${lower},${intervals[i]}]`;
+            }
+        }
+        return `[${intervals[intervals.length-1]+1},+∞]`;
+    }
+
+    // Apply filters
+    async function applyFilters() {
+        const selectedMetric = document.getElementById('success-metric-filter').value;
+        const selectedMetricValue = document.getElementById('metric-value-filter').value;
+        const selectedScene = document.getElementById('scene-filter').value;
+        const selectedActionLen = document.getElementById('action-len-filter').value;
+        const searchText = document.getElementById('search-filter').value.toLowerCase();
+
+        // If a success metric is selected with a value, use the filter API
+        if (selectedMetric && selectedMetricValue) {
+            await applyMetricFilter(selectedMetric, selectedMetricValue);
+            return;
+        }
+
+        // Otherwise, use client-side filtering
+        filteredRollouts = allRollouts.filter(rollout => {
+            if (selectedScene && rollout.scene_id !== selectedScene) return false;
+            if (selectedActionLen && getIntervalLabel(rollout.gt_action_len) !== selectedActionLen) return false;
+            if (searchText && !rollout.rollout_id.toLowerCase().includes(searchText)) return false;
+            return true;
+        });
+
+        currentFilterMetricStats = null;
+        renderRolloutsList();
+        renderFilterMetricStatistics(); // Hide stats card when no metric selected
+    }
+
+    // Apply metric filter using API
+    async function applyMetricFilter(filterKey, filterValue) {
+        try {
+            const response = await fetch(
+                `/api/tags/${selectedModel}/${selectedTag}/filter?filter_key=${filterKey}&filter_value=${filterValue}`
+            );
+            const data = await response.json();
+
+            filteredRollouts = data.rollouts;
+            currentFilterMetricStats = data.stats;
+
+            renderRolloutsList();
+            renderFilterMetricStatistics();
+        } catch (error) {
+            console.error('Error applying metric filter:', error);
+            filteredRollouts = [];
+            currentFilterMetricStats = null;
+        }
+    }
+
+    // Render rollouts list
+    function renderRolloutsList() {
+        const listElement = document.getElementById('rollouts-list');
+        const countElement = document.getElementById('rollout-count');
+
+        if (!selectedTag) {
+            listElement.innerHTML = '<div class="empty-state"><div class="empty-state-text">Select a tag to view rollouts</div></div>';
+            countElement.textContent = 'Select a tag to view rollouts';
+            return;
+        }
+
+        countElement.textContent = `Showing ${filteredRollouts.length} of ${allRollouts.length} rollout(s)`;
+
+        if (filteredRollouts.length === 0) {
+            listElement.innerHTML = '<div class="empty-state"><div class="empty-state-text">No rollouts match the current filters</div></div>';
+            return;
+        }
+
+        listElement.innerHTML = '';
+        filteredRollouts.forEach(rollout => {
+            const card = createRolloutCard(rollout);
+            listElement.appendChild(card);
+        });
+    }
+
+    // Create rollout card
+    function createRolloutCard(rollout) {
+        const card = document.createElement('div');
+        card.className = 'rollout-card';
+        if (selectedRollout && selectedRollout.rollout_id === rollout.rollout_id) {
+            card.classList.add('selected');
+        }
+
+        const header = document.createElement('div');
+        header.className = 'rollout-header';
+
+        const id = document.createElement('div');
+        id.className = 'rollout-id';
+        id.textContent = rollout.rollout_id;
+
+        // Show filter metric value if a metric is selected
+        const selectedMetric = document.getElementById('success-metric-filter').value;
+        if (selectedMetric) {
+            const badge = document.createElement('div');
+            let metricValue = 'missing';
+            let badgeClass = 'rollout-badge';
+
+            if (selectedMetric in rollout) {
+                metricValue = rollout[selectedMetric] ? 'true' : 'false';
+                badgeClass += rollout[selectedMetric] ? ' badge-success' : ' badge-failure';
+            } else {
+                badgeClass += ' badge-missing';
+            }
+
+            badge.className = badgeClass;
+            badge.textContent = metricValue;
+            header.appendChild(id);
+            header.appendChild(badge);
+        } else {
+            header.appendChild(id);
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'rollout-meta';
+        meta.innerHTML = `
+            ${rollout.scene_id ? `<span>🎬 ${rollout.scene_id}</span>` : ''}
+            ${rollout.gt_action_len !== null && rollout.gt_action_len !== undefined ? `<span>📏 Action Len: ${rollout.gt_action_len}</span>` : ''}
+            <span>💯 Reward: ${Number(rollout.cumulative_reward || 0).toFixed(2)}</span>
+            <span>🔄 Turns: ${rollout.num_turns ?? 'N/A'}</span>
+        `;
+
+        card.appendChild(header);
+        card.appendChild(meta);
+
+        card.addEventListener('click', () => {
+            selectRollout(rollout);
+        });
+
+        return card;
+    }
+
+    // Select and load a rollout
+    async function selectRollout(rollout) {
+        selectedRollout = rollout;
+        renderRolloutsList(); // Re-render to update selection
+
+        // Show loading state
+        const conversationElement = document.getElementById('conversation');
+        conversationElement.innerHTML = '<div class="loading">Loading conversation...</div>';
+
+        try {
+            const response = await fetch(`/api/rollouts/${selectedModel}/${selectedTag}/${rollout.rollout_id}`);
+            const fullData = await response.json();
+            renderConversation(fullData);
+        } catch (error) {
+            console.error('Error loading rollout:', error);
+            conversationElement.innerHTML = '<div class="empty-state"><div class="empty-state-text">Error loading conversation</div></div>';
+        }
+    }
+
+    // Render conversation
+    function renderConversation(rollout) {
+        const conversationElement = document.getElementById('conversation');
+        const titleElement = document.getElementById('conversation-title');
+        const metricsPanel = document.getElementById('metrics-panel');
+
+        titleElement.textContent = `Conversation: ${rollout.rollout_id}`;
+        conversationElement.innerHTML = '';
+
+        // Get image files in order
+        const imageFiles = Object.keys(rollout.images || {}).sort();
+        let imageIndex = 0;
+
+        (rollout.messages || []).forEach((message) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.role}`;
+
+            const roleDiv = document.createElement('div');
+            roleDiv.className = `message-role ${message.role}`;
+            roleDiv.textContent = message.role;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            (message.content || []).forEach(contentItem => {
+                if (contentItem.type === 'text') {
+                    const text = contentItem.text || '';
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'message-text-raw';
+                    textDiv.textContent = text;
+                    contentDiv.appendChild(textDiv);
+                } else if (contentItem.type === 'image_url') {
+                    if (imageIndex < imageFiles.length) {
+                        const img = document.createElement('img');
+                        img.className = 'message-image';
+                        img.src = rollout.images[imageFiles[imageIndex]];
+                        img.loading = 'lazy';
+                        contentDiv.appendChild(img);
+                        imageIndex++;
+                    }
+                }
+            });
+
+            messageDiv.appendChild(roleDiv);
+            messageDiv.appendChild(contentDiv);
+            conversationElement.appendChild(messageDiv);
+        });
+
+        // =========================
+        // Metrics panel: show ALL primitive (non-nested) key/value pairs from metrics.json
+        // - Primitive means: bool/number/string/null/undefined
+        // - Skip: arrays/lists and objects/dicts
+        // =========================
+
+        const metricsObj = rollout.metrics; // This comes from your Flask: get_rollout_full() -> 'metrics'
+
+        function isPrimitive(v) {
+            return (
+                v === null ||
+                v === undefined ||
+                typeof v === 'string' ||
+                typeof v === 'number' ||
+                typeof v === 'boolean'
+            );
+        }
+
+        function formatLabel(key) {
+            return key.split('_').map(word =>
+                word ? word.charAt(0).toUpperCase() + word.slice(1) : word
+            ).join(' ');
+        }
+
+        function formatValue(value) {
+            if (value === null || value === undefined) return 'N/A';
+            if (typeof value === 'boolean') return value ? 'True' : 'False';
+            if (typeof value === 'number') {
+                return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+            }
+            return String(value);
+        }
+
+        const metricsToShow = [];
+        if (metricsObj && typeof metricsObj === 'object' && !Array.isArray(metricsObj)) {
+            for (const [key, value] of Object.entries(metricsObj)) {
+                if (!isPrimitive(value)) continue;
+                metricsToShow.push({ key, value });
+            }
+        }
+
+        if (metricsToShow.length > 0) {
+            metricsPanel.style.display = 'block';
+            metricsPanel.innerHTML = '';
+
+            // Add header with toggle
+            const header = document.createElement('div');
+            header.className = 'metrics-panel-header';
+
+            const headerTitle = document.createElement('h3');
+            headerTitle.textContent = 'Metrics';
+
+            const toggleIcon = document.createElement('span');
+            toggleIcon.className = 'metrics-panel-toggle';
+            toggleIcon.textContent = '▼';
+
+            header.appendChild(headerTitle);
+            header.appendChild(toggleIcon);
+            metricsPanel.appendChild(header);
+
+            // Add content container
+            const contentContainer = document.createElement('div');
+            contentContainer.className = 'metrics-panel-content';
+
+            metricsToShow.forEach(({ key, value }) => {
+                const metricItem = document.createElement('div');
+                metricItem.className = 'metric-item';
+
+                const label = document.createElement('div');
+                label.className = 'metric-label';
+                label.textContent = formatLabel(key);
+
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'metric-value';
+
+                // Color boolean values (true=green, false=red)
+                if (typeof value === 'boolean') {
+                    valueDiv.style.color = value ? '#27ae60' : '#e74c3c';
+                }
+
+                valueDiv.textContent = formatValue(value);
+
+                metricItem.appendChild(label);
+                metricItem.appendChild(valueDiv);
+                contentContainer.appendChild(metricItem);
+            });
+
+            metricsPanel.appendChild(contentContainer);
+
+            // Setup toggle functionality
+            header.addEventListener('click', () => {
+                metricsPanel.classList.toggle('collapsed');
+            });
+        } else {
+            // Hide panel if no primitive metrics available
+            metricsPanel.style.display = 'none';
+            metricsPanel.innerHTML = '';
+        }
+
+        conversationElement.scrollTop = 0;
+    }
+
+    // Parse message text into normal text / think / action blocks
+    function parseMessageText(text) {
+        const parts = [];
+        const thinkRegex = /<think>(.*?)<\/think>/gs;
+        const actionRegex = /<action>(.*?)<\/action>/gs;
+
+        let lastIndex = 0;
+        const matches = [];
+
+        let match;
+        while ((match = thinkRegex.exec(text)) !== null) {
+            matches.push({ type: 'think', content: match[1], index: match.index, end: match.index + match[0].length });
+        }
+        while ((match = actionRegex.exec(text)) !== null) {
+            matches.push({ type: 'action', content: match[1], index: match.index, end: match.index + match[0].length });
+        }
+
+        matches.sort((a, b) => a.index - b.index);
+
+        matches.forEach(m => {
+            if (m.index > lastIndex) {
+                const textBefore = text.substring(lastIndex, m.index);
+                if (textBefore.trim()) parts.push({ type: 'text', content: textBefore });
+            }
+            parts.push({ type: m.type, content: m.content });
+            lastIndex = m.end;
+        });
+
+        if (lastIndex < text.length) {
+            const textAfter = text.substring(lastIndex);
+            if (textAfter.trim()) parts.push({ type: 'text', content: textAfter });
+        }
+
+        if (parts.length === 0) parts.push({ type: 'text', content: text });
+
+        return parts;
+    }
+
+    // Escape HTML (avoid XSS when inserting think/action blocks)
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Render filter metric statistics panel (left sidebar)
+    function renderFilterMetricStatistics() {
+        const statsCard = document.getElementById('filter-metric-stats-card');
+        const statsContent = document.getElementById('filter-metric-stats-content');
+        const selectedMetric = document.getElementById('success-metric-filter').value;
+
+        if (!currentFilterMetricStats || !selectedMetric) {
+            statsCard.style.display = 'none';
+            return;
+        }
+
+        statsCard.style.display = 'block';
+        statsContent.innerHTML = '';
+
+        // Update card title to show current metric
+        statsCard.querySelector('h3').textContent = `Filter: ${selectedMetric}`;
+
+        const overall = currentFilterMetricStats.overall;
+
+        // Overall stats
+        const overallDiv = document.createElement('div');
+        overallDiv.style.marginBottom = '15px';
+        overallDiv.innerHTML = `
+            <div style="font-weight: 600; margin-bottom: 8px;">Overall</div>
+            <div class="stat-row">
+                <span class="stat-row-label">Total:</span>
+                <span class="stat-row-value">${overall.total}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-row-label">True:</span>
+                <span class="stat-row-value success-rate">${overall.true} (${(overall.true_rate * 100).toFixed(1)}%)</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-row-label">False:</span>
+                <span class="stat-row-value failure-rate">${overall.false} (${(overall.false_rate * 100).toFixed(1)}%)</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-row-label">Missing:</span>
+                <span class="stat-row-value">${overall.missing} (${(overall.missing_rate * 100).toFixed(1)}%)</span>
+            </div>
+        `;
+        statsContent.appendChild(overallDiv);
+
+        // By action length
+        if (currentFilterMetricStats.by_action_len && Object.keys(currentFilterMetricStats.by_action_len).length > 0) {
+            const actionLenDiv = document.createElement('div');
+            actionLenDiv.style.marginBottom = '15px';
+            actionLenDiv.innerHTML = '<div style="font-weight: 600; margin-bottom: 8px;">By Action Length</div>';
+
+            const sortedIntervals = Object.entries(currentFilterMetricStats.by_action_len)
+                .sort((a, b) => {
+                    const aLower = parseInt(a[0].match(/\d+/)[0]);
+                    const bLower = parseInt(b[0].match(/\d+/)[0]);
+                    return aLower - bLower;
+                });
+
+            sortedIntervals.forEach(([interval, stats]) => {
+                const row = document.createElement('div');
+                row.className = 'stat-row';
+                row.innerHTML = `
+                    <span class="stat-row-label">${interval}:</span>
+                    <span class="stat-row-value">${stats.true}/${stats.total} (${(stats.true_rate * 100).toFixed(1)}%)</span>
+                `;
+                actionLenDiv.appendChild(row);
+            });
+
+            statsContent.appendChild(actionLenDiv);
+        }
+
+        // By scene (top 10)
+        if (currentFilterMetricStats.by_scene && Object.keys(currentFilterMetricStats.by_scene).length > 0) {
+            const sceneDiv = document.createElement('div');
+            sceneDiv.innerHTML = '<div style="font-weight: 600; margin-bottom: 8px;">By Scene (Top 10)</div>';
+
+            Object.entries(currentFilterMetricStats.by_scene)
+                .sort((a, b) => b[1].total - a[1].total)
+                .slice(0, 10)
+                .forEach(([scene, stats]) => {
+                    const row = document.createElement('div');
+                    row.className = 'stat-row';
+                    row.innerHTML = `
+                        <span class="stat-row-label">${scene}:</span>
+                        <span class="stat-row-value">${stats.true}/${stats.total} (${(stats.true_rate * 100).toFixed(1)}%)</span>
+                    `;
+                    sceneDiv.appendChild(row);
+                });
+
+            statsContent.appendChild(sceneDiv);
+        }
+    }
+
+    // Event listeners for filters
+    document.getElementById('success-metric-filter').addEventListener('change', function() {
+        const selectedMetric = this.value;
+        const metricValueGroup = document.getElementById('metric-value-filter-group');
+
+        if (selectedMetric) {
+            metricValueGroup.style.display = 'block';
+        } else {
+            metricValueGroup.style.display = 'none';
+            document.getElementById('metric-value-filter').value = '';
+        }
+
+        applyFilters();
+    });
+
+    document.getElementById('metric-value-filter').addEventListener('change', applyFilters);
+    document.getElementById('scene-filter').addEventListener('change', applyFilters);
+    document.getElementById('action-len-filter').addEventListener('change', applyFilters);
+    document.getElementById('search-filter').addEventListener('input', applyFilters);
+
+    // Initialize
+    loadTags();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+defaults:
+  - ../eval_default
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+default_chat_config:
+  max_output_tokens: 10000
+  reasoning:
+    effort: "medium"
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/gpt_5_4_pro
+  default_max_turns: 1
+
+run:
+  backend: "azure_responses"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  azure_responses:
+    azure_endpoint: "https://linjl-ma65uv6u-eastus2.cognitiveservices.azure.com/"
+    azure_api_key: ""         # or export AZURE_API_KEY
+    azure_api_version: "2025-04-01-preview"
+    deployment: "gpt-5.4-pro"
+    model: ${backends.azure_responses.deployment}
+    max_concurrency: 4
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0

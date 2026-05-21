@@ -1,0 +1,65 @@
+# =============================================================================
+# LLaMA-Factory SFT Module Configuration (GraphRL-internal)
+# =============================================================================
+#
+# This config is loaded by GraphRL's config system (NOT by LLaMA-Factory).
+# It contains:
+#   1. GraphRL-internal settings (timeout, poll_interval, etc.)
+#   2. hydra_overrides: dict of LLaMA-Factory training params
+#
+# The hydra_overrides section is written to a YAML file and passed to
+# ``llamafactory-cli train <config.yaml>``. Controller-managed paths
+# (model_name_or_path, dataset_dir, output_dir) are injected automatically.
+
+# --- GraphRL-internal settings ---
+
+# Path to LLaMA-Factory project root (optional, used as cwd)
+# llama_factory_dir: LLaMA-Factory
+
+# Module lifecycle
+timeout: 86400        # Max training time in seconds (default: 24h)
+poll_interval: 30     # Polling interval for is_done() check
+
+# GPU settings
+force_torchrun: true
+# n_gpus: 8          # Uncomment to set NPROC_PER_NODE
+
+# --- Training overrides ---
+# These are written as a YAML config file for llamafactory-cli.
+# Controller injects: model_name_or_path, dataset_dir, output_dir.
+#
+# Example:
+#   hydra_overrides:
+#     stage: sft
+#     finetuning_type: full
+#     template: qwen2_vl
+#     per_device_train_batch_size: 4
+#     learning_rate: 2.0e-5
+#     num_train_epochs: 1
+#     bf16: true
+#     deepspeed: ds_config.json
+hydra_overrides:
+  # Method
+  stage: sft
+  do_train: true
+  finetuning_type: full
+  # Dataset
+  dataset: sft_data
+  template: qwen2_vl
+  cutoff_len: 2048
+  preprocessing_num_workers: 16
+  # Training
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 2
+  learning_rate: 2.0e-5
+  num_train_epochs: 1.0
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.1
+  bf16: true
+  # Output
+  logging_steps: 10
+  save_steps: 500
+  overwrite_output_dir: true
+  trust_remote_code: true
+  deepspeed: ds_z3_config.json
+  use_fast_tokenizer: false

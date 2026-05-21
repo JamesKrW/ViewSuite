@@ -1,0 +1,125 @@
+# =============================================================================
+# Sokoban Text — Pure-RL Baseline (no SFT)
+# =============================================================================
+# Single-iteration pure RL on Sokoban text mode for ~401 training steps.
+# TrajToSFT and SFT are both disabled.
+#
+# Usage:
+#   bash run_pure_rl.sh
+#   bash run_pure_rl.sh general_overrides.rl.training_steps=200
+# =============================================================================
+
+hydra:
+  job:
+    chdir: false
+
+project_name: sokoban
+experiment_name: sokoban_text_pure_rl
+experiment_dir: exps/${project_name}/${experiment_name}
+initial_model_path: Qwen/Qwen2.5-VL-7B-Instruct
+iterations: 1
+
+# ── HF upload (per-iter, end-of-phase) ────────────────────────────────────
+# At iter end, upload these resources to HF. Resources that look like an HF
+# model dir (config.json + safetensors) → model repo; others → tar.gz to a
+# dataset repo. See graphrl/utils/hf_uploader.py.
+upload_to_hf: [rl_model]
+upload_to_hf_model_repo: sokoban_text_pure_rl
+# Pure-RL has no real sft_data; sft_model is a symlink to rl_model.
+
+general_overrides:
+  rl:
+    training_steps: 401            # ~401 RL steps as requested
+    vagen_dir: VAGEN
+    # data.train_files / data.val_files injected by run_pure_rl.sh
+    hydra_overrides:
+      data:
+        max_prompt_length: 4000
+        max_response_length: 4096
+        train_batch_size: 64
+        train_files: null
+        val_files: null
+
+      algorithm:
+        adv_estimator: grpo
+        kl_ctrl:
+          kl_coef: 0.0
+
+      actor_rollout_ref:
+        model:
+          use_remove_padding: true
+          use_fused_kernels: true
+          enable_gradient_checkpointing: true
+        actor:
+          optim:
+            lr: 1.0e-6
+          ppo_micro_batch_size_per_gpu: 1
+          ppo_mini_batch_size: 64
+          use_kl_loss: false
+          kl_loss_coef: 0.0
+          kl_loss_type: low_var_kl
+          entropy_coeff: 0.0
+          ulysses_sequence_parallel_size: 1
+          checkpoint:
+            save_contents: [model, hf_model, optimizer, extra]
+          fsdp_config:
+            param_offload: true
+            optimizer_offload: true
+        rollout:
+          name: sglang
+          log_prob_micro_batch_size_per_gpu: 1
+          tensor_model_parallel_size: 1
+          mode: async
+          n: 4
+          max_num_batched_tokens: 16384
+          gpu_memory_utilization: 0.6
+          enforce_eager: true
+          free_cache_engine: true
+          enable_chunked_prefill: true
+          disable_log_stats: false
+          agent:
+            agent_loop_config_path: vagen/configs/agent.yaml
+        ref:
+          log_prob_micro_batch_size_per_gpu: 1
+          fsdp_config:
+            param_offload: true
+
+      critic:
+        enable: true
+        optim:
+          lr: 1.0e-5
+        model:
+          use_remove_padding: true
+          enable_gradient_checkpointing: true
+          fsdp_config:
+            param_offload: true
+            optimizer_offload: true
+        ppo_micro_batch_size_per_gpu: 1
+
+      trainer:
+        n_gpus_per_node: 8
+        nnodes: 1
+        critic_warmup: 0
+        val_before_train: true
+        save_freq: 20
+        test_freq: 20
+        max_actor_ckpt_to_keep: 1
+        max_critic_ckpt_to_keep: 1
+        skip_special_tokens_val: true
+        log_val_generations: 32
+
+      # ── Mid-RL HF push (every 200 RL steps) ─────────────────────────────
+      # vagen pushes the latest hf_model checkpoint to this repo each time
+      # the trainer hits hf_save_freq steps. With training_steps=401 →
+      # fires at step 200 + step 400. Disable by setting hf_save_freq: null.
+      huggingface_hub:
+        hf_save_freq: 200
+        repo_id: sokoban_text_pure_rl
+        private: false
+        upload_contents: ['hf_model']
+
+# Single iter, no TrajToSFT, no SFT — pure RL baseline.
+iteration_overrides:
+  iter0:
+    traj_to_sft: null
+    sft: null

@@ -1,0 +1,67 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# virtualenv / conda
+.venv/
+venv/
+env/
+ENV/
+.conda/
+conda-env/
+
+# packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- IDE ----
+.vscode/
+.idea/
+
+# ---- Logs / temp ----
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# ---- Secrets ----
+.env
+*.key
+*.pem
+
+# ---- Deep Learning outputs ----
+runs/              # tensorboard
+wandb/             # Weights & Biases
+lightning_logs/    # PyTorch Lightning
+checkpoints/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.h5
+*.tfevents*
+
+# ---- Data (按需) ----
+/data/
+*.csv
+*.tsv
+*.npy
+*.npz
+
+/exps/
+/outputs/
+/wandb/

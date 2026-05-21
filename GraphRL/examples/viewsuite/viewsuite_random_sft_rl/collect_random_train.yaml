@@ -1,0 +1,53 @@
+# ── Random Baseline: Interactive View Planning (TRAINING split) ─────────────
+# Invoked by the ``viewsuite_random_sft_rl`` dynamic TrajToSFT generator to
+# collect fresh random-action trajectories on the training split.
+#
+# The generator overrides (from pipeline.yaml):
+#   experiment.dump_dir  → <iter_dir>/random_sft_stage/random_dump
+#   run.base_seed        → iter_num * seed_offset_per_iter
+#
+# Trajectory count lives here. ``envs[0].n_envs`` = episodes per iter;
+# ``envs[0].seed = [min, max, 1]`` samples ``n_envs`` *unique* scene seeds
+# from ``[min..max]`` (``base_seed`` + seed_offset_per_iter reshuffles the
+# subset each iter). Keeping ``max >= scene pool size`` lets each iter pull a
+# fresh random subset out of the full train scene pool.
+# ─────────────────────────────────────────────────────────────────────
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+envs:
+  - name: InteractiveViewPlanning
+    n_envs: 300
+    tag_id: random_interactive_view_planning_train_10
+    seed: [1, 3419, 1]
+    split: train
+    max_turns: 10
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_train_filter.jsonl
+      max_turns: 10
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512, 512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+
+default_chat_config:
+  random_seed: 42
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/random_response_train
+  default_max_turns: 10
+
+run:
+  backend: "random_navigation"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  random_navigation:
+    model: "random"
+    max_concurrency: 100
+    max_retries: 0

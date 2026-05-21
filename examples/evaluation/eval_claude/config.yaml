@@ -1,0 +1,56 @@
+defaults:
+  - ../eval_default
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+default_chat_config:
+  temperature: 0.0
+  max_tokens: 512
+
+envs:
+  - name: InteractiveViewPlanning
+    n_envs: 545
+    tag_id: 21
+    seed: [0,545,1]
+    split: test
+    max_turns: 20
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test.jsonl
+      max_turns: 20
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+
+  - name: InteractiveViewPlanning
+    n_envs: 545
+    tag_id: 22
+    seed: [0,545,1]
+    split: test
+    max_turns: 30
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test.jsonl
+      max_turns: 30
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/claude_sonnet-4-5
+  default_max_turns: 1
+
+run:
+  backend: "claude"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  claude:
+    api_key: ""               # or export ANTHROPIC_API_KEY
+    base_url: null
+    model: "claude-sonnet-4-5"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0

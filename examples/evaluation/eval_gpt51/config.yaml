@@ -1,0 +1,27 @@
+defaults:
+  - ../eval_default
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/gpt51
+  default_max_turns: 1
+
+run:
+  backend: "azure"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  azure:
+    azure_endpoint: "https://linjl-ma65uv6u-eastus2.cognitiveservices.azure.com/"
+    azure_api_key: ""         # or export AZURE_API_KEY
+    azure_api_version: "2024-12-01-preview"
+    deployment: "gpt-5.1"
+    model: ${backends.azure.deployment}
+    max_concurrency: 4
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0

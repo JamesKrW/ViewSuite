@@ -1,0 +1,44 @@
+# =============================================================================
+# VAGEN RL Module Configuration (GraphRL-internal)
+# =============================================================================
+#
+# This config is loaded by GraphRL's config system (NOT by Hydra).
+# It contains:
+#   1. GraphRL-internal settings (timeout, poll_interval, etc.)
+#   2. hydra_overrides: dict of Hydra CLI args passed to VAGEN
+#
+# The Hydra config for VAGEN is in vagen_multiturn.yaml (same directory).
+
+# --- GraphRL-internal settings ---
+
+# Path to the VAGEN project root (relative to CWD or absolute)
+vagen_dir: VAGEN
+
+# Hydra config name (matches the YAML file in this directory, without .yaml)
+hydra_config_name: vagen_multiturn
+
+# Module lifecycle
+timeout: 86400        # Max training time in seconds (default: 24h)
+poll_interval: 30     # Polling interval for is_done() check
+
+# Graph builder for trajectory conversion during RL training
+graph_builder: null
+merge_interval: 300   # Seconds between traj-to-graph merge runs
+
+# Checkpoint detection
+training_steps: 5     # Expected total training steps for checkpoint monitor
+
+# --- Hydra overrides ---
+# These are flattened into Hydra CLI args and passed to VAGEN.
+# They have the highest priority (override both base config and searchpath).
+#
+# Example:
+#   hydra_overrides:
+#     data:
+#       train_files: path/to/train.yaml
+#     actor_rollout_ref:
+#       model:
+#         path: Qwen/Qwen2.5-VL-7B-Instruct
+#     trainer:
+#       total_epochs: 3
+hydra_overrides: {}

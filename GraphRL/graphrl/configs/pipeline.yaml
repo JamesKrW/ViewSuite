@@ -1,0 +1,46 @@
+# =============================================================================
+# GraphRL Pipeline Configuration (template)
+# =============================================================================
+#
+# Mono-backend by design: RL = VAGEN, SFT = LLaMA-Factory. The only
+# user-extension point is the TrajToSFT phase — point ``traj_to_sft.module``
+# at a ``TrajToSFTModule`` subclass (dotted Python path).
+#
+# Launch:
+#   python -m graphrl.main
+#
+# Override from CLI:
+#   python -m graphrl.main experiment_dir=/path/to/exp iterations=5
+
+hydra:
+  job:
+    chdir: false
+
+# Used as wandb project + default HuggingFace repo id for ``upload_to_hf``.
+project_name: graphrl
+experiment_name: graphrl_pipeline
+# Resolves to ``exps/<project_name>/<experiment_name>`` via OmegaConf
+# interpolation. Override on the CLI or in your example yaml when needed.
+experiment_dir: exps/${project_name}/${experiment_name}
+initial_model_path: Qwen/Qwen2.5-VL-7B-Instruct
+iterations: 3
+
+# Overrides applied to ALL iterations.
+general_overrides:
+  rl: {}
+  sft: {}
+  traj_to_sft:
+    # Required: dotted-path of a TrajToSFTModule subclass.
+    # module: graphrl.envs.<your_env>.<YourTrajToSFT>
+
+# Per-iteration overrides (0-indexed). Set a phase config to ``null`` to skip
+# that phase for the iteration. Unlisted iterations use general_overrides only.
+#
+# Example::
+#   iteration_overrides:
+#     iter0:
+#       sft: null               # skip SFT in iter0
+#     iter1:
+#       traj_to_sft: null       # skip TrajToSFT
+#       sft: null               # and SFT  → pure-RL iter
+iteration_overrides: {}

@@ -1,0 +1,16 @@
+# =============================================================================
+# Custom Environment Registry for GraphRL
+# =============================================================================
+#
+# This file overrides VAGEN's default env_registry.yaml via Hydra defaults.
+# Since this directory is the --config-path, Hydra finds this file before
+# searching the VAGEN searchpath.
+#
+# Add custom environments here. Existing VAGEN envs are listed as defaults.
+
+env_registry:
+  Sokoban: graphrl.envs.sokoban.sokoban_env.Sokoban
+  FrozenLake: vagen.envs.frozenlake.frozenlake_env.FrozenLake
+  Path2View: view_suite.envs.scannet_proxy_task.path_to_view.Path2View
+  InteractiveViewPlanning: view_suite.envs.scannet_proxy_task.interactive_view_planning.InteractiveViewPlanning
+  View2Path: view_suite.envs.scannet_proxy_task.view_to_path.View2Path

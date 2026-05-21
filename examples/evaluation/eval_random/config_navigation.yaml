@@ -1,0 +1,76 @@
+# ── Random Baseline: Interactive View Planning (Navigation) ─────────────────
+# Random-walk agent that explores randomly for N-1 turns, then submits
+# a randomly chosen previously-observed camera pose as the answer.
+# ─────────────────────────────────────────────────────────────────────
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+envs:
+
+  - name: InteractiveViewPlanning
+    n_envs: 530
+    tag_id: interactive_view_planning_10
+    seed: [1,530,1]
+    split: test
+    max_turns: 10
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test_filter.jsonl
+      max_turns: 10
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+
+  - name: InteractiveViewPlanning
+    n_envs: 530
+    tag_id: interactive_view_planning_20
+    seed: [1,530,1]
+    split: test
+    max_turns: 20
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test_filter.jsonl
+      max_turns: 20
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+
+  - name: InteractiveViewPlanning
+    n_envs: 530
+    tag_id: interactive_view_planning_30
+    seed: [1,530,1]
+    split: test
+    max_turns: 30
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test_filter.jsonl
+      max_turns: 30
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+
+default_chat_config:
+  random_seed: 42
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/random_response
+  default_max_turns: 30
+
+run:
+  backend: "random_navigation"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  random_navigation:
+    model: "random"
+    max_concurrency: 100
+    max_retries: 0

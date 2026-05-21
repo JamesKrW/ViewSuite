@@ -1,0 +1,13 @@
+env_registry:
+  # Local environments
+  Sokoban: vagen.envs.sokoban.sokoban_env.Sokoban
+  FrozenLake: vagen.envs.frozenlake.frozenlake_env.FrozenLake
+  SpatialGym: vagen.envs.spatial_gym.spatial_gym_env.SpatialGym
+  MindCubeNoToolGym: view_suite.envs.mindcube.gym_mindcube_no_tool.MindCubeNoToolGym
+  Path2View: view_suite.envs.scannet_proxy_task.path_to_view.Path2View
+  InteractiveViewPlanning: view_suite.envs.scannet_proxy_task.interactive_view_planning.InteractiveViewPlanning
+  View2Path: view_suite.envs.scannet_proxy_task.view_to_path.View2Path
+
+ 
+  # Remote environment client (generic, reusable for any remote env)
+  RemoteEnv: vagen.envs_remote.GymImageEnvClient

@@ -1,0 +1,58 @@
+# ── ViewSuite IVP (no_snap) eval default ───────────────────────────────
+# Base config for evaluating proxy models on InteractiveViewPlanning with
+# rotation snap disabled (`is_snap_every_step=false`, no Euler quantization).
+#
+# Usage: each per-model yaml inherits via:
+#
+#   defaults:
+#     - eval_default
+#
+# Override `experiment.dump_dir` and `backends.openai.model` per model.
+# ───────────────────────────────────────────────────────────────────────
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+default_chat_config:
+  temperature: 0.0
+  max_tokens: 10000
+  top_p: 0.95
+
+envs:
+  - name: InteractiveViewPlanning
+    n_envs: 530
+    tag_id: interactive_view_planning
+    seed: [1, 530, 1]
+    split: test
+    max_turns: 10
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test_filter.jsonl
+      max_turns: 10
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512, 512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+      is_discrete: true
+      is_snap_every_step: false
+
+experiment:
+  dump_dir: ${fileroot}/rollouts_iter003_nosnap/default
+  default_max_turns: 10
+
+run:
+  backend: "openai"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  openai:
+    api_key: ${oc.env:OPENROUTER_API_KEY}
+    base_url: "https://openrouter.ai/api/v1"
+    model: "openai/gpt-4o"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0

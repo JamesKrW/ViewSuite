@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Visualizer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Libraries (UMD) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/graphology/0.25.4/graphology.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sigma@3.0.2/dist/sigma.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Top Bar -->
+    <header id="topbar">
+        <div class="topbar-left">
+            <h1>Graph Visualizer</h1>
+            <span id="global-info" class="badge"></span>
+        </div>
+        <div class="topbar-center">
+            <label for="cluster-dropdown">Cluster:</label>
+            <select id="cluster-dropdown">
+                <option value="">All Graph</option>
+            </select>
+            <input type="range" id="cluster-slider" min="0" max="0" value="0" title="Drag to browse clusters" />
+            <span id="comp-info" class="badge"></span>
+        </div>
+        <div class="topbar-right">
+            <input type="text" id="search-input" placeholder="Search nodes..." />
+            <div id="search-results" class="dropdown-results"></div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div id="main">
+        <!-- Left Panel -->
+        <aside id="left-panel">
+            <section class="panel-section">
+                <h3>Layout</h3>
+                <div class="filter-group">
+                    <label>X Axis</label>
+                    <select id="layout-x"></select>
+                </div>
+                <div class="filter-group">
+                    <label>Y Axis</label>
+                    <select id="layout-y"></select>
+                </div>
+            </section>
+
+            <section class="panel-section">
+                <h3>Filters</h3>
+                <div class="filter-group">
+                    <label>Min Degree</label>
+                    <input type="number" id="filter-min-degree" value="0" min="0" />
+                </div>
+                <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
+                <button id="reset-filters" class="btn btn-secondary">Reset</button>
+            </section>
+
+            <section class="panel-section">
+                <h3>Clustering</h3>
+                <div class="filter-group">
+                    <label>Cluster By</label>
+                    <select id="cluster-by">
+                        <option value="wcc" selected>Connected Components</option>
+                        <option value="scc">Strongly Connected</option>
+                        <option value="group">Group By Field</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="cluster-field-group" style="display:none;">
+                    <label>Group Field</label>
+                    <select id="cluster-group-field"></select>
+                </div>
+            </section>
+
+            <section class="panel-section">
+                <h3>Display</h3>
+                <div class="filter-group">
+                    <label><input type="checkbox" id="show-edges" checked /> Show Edges</label>
+                </div>
+                <div class="filter-group">
+                    <label><input type="checkbox" id="show-labels" /> Show Node IDs</label>
+                </div>
+                <div class="filter-group">
+                    <label><input type="checkbox" id="show-edge-labels" /> Show Edge Labels</label>
+                </div>
+                <div class="filter-group">
+                    <label><input type="checkbox" id="hover-reachable" /> Hover: Show All Reachable</label>
+                </div>
+                <div class="filter-group">
+                    <label><input type="checkbox" id="hover-passthrough" /> Hover: Show All Pass-Through</label>
+                </div>
+            </section>
+
+            <section class="panel-section">
+                <h3>Current View Stats</h3>
+                <div id="comp-stats-summary">
+                    <p class="muted">Select a component</p>
+                </div>
+                <button id="show-charts-btn" class="btn btn-secondary" disabled>Show Charts</button>
+                <button id="show-comp-table-btn" class="btn btn-secondary">All Components</button>
+                <button id="show-global-stats-btn" class="btn btn-secondary">Global Stats</button>
+            </section>
+        </aside>
+
+        <!-- Center: Graph Canvas -->
+        <div id="graph-container">
+            <div id="sigma-container"></div>
+            <div id="loading-overlay" style="display:none;">
+                <div class="spinner"></div>
+                <p>Loading graph...</p>
+            </div>
+            <div id="graph-placeholder">
+                <p>Loading graph overview...</p>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <aside id="right-panel">
+            <section class="panel-section">
+                <h3>Inspector</h3>
+                <div id="inspector-content">
+                    <p class="muted">Click a node to inspect its attributes</p>
+                </div>
+            </section>
+
+            <section class="panel-section">
+                <h3>Path Finder</h3>
+                <div class="filter-group">
+                    <label>From Node</label>
+                    <input type="text" id="path-from" placeholder="Node ID or click" />
+                </div>
+                <div class="filter-group">
+                    <label>To Node</label>
+                    <input type="text" id="path-to" placeholder="Node ID or click" />
+                </div>
+                <button id="find-path-btn" class="btn btn-primary">Find Path</button>
+                <div id="path-result"></div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="modal-overlay" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title"></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body" class="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Image Lightbox -->
+    <div id="lightbox" class="lightbox" style="display:none;" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" />
+    </div>
+
+    <!-- Status Bar -->
+    <footer id="statusbar">
+        <span id="status-text">Ready</span>
+    </footer>
+
+    <!-- Load @sigma/edge-curve via ESM, then load app scripts -->
+    <script type="module">
+        try {
+            const mod = await import("https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.1.0/+esm");
+            window.EdgeCurveProgram = mod.default;
+            window.EdgeCurvedArrowProgram = mod.EdgeCurvedArrowProgram;
+        } catch (e) {
+            console.warn("Edge curve plugin not available:", e);
+        }
+
+        const scripts = [
+            '/static/js/api-client.js?v=9',
+            '/static/js/graph-renderer.js?v=9',
+            '/static/js/inspector.js?v=9',
+            '/static/js/ui-controls.js?v=9',
+            '/static/js/stats-charts.js?v=9',
+            '/static/js/app.js?v=9',
+        ];
+        for (const src of scripts) {
+            await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.body.appendChild(s);
+            });
+        }
+    </script>
+</body>
+</html>

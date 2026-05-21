@@ -1,0 +1,154 @@
+# =============================================================================
+# ViewSuite Interactive View Planning — Self-Bootstrapping Baseline Pipeline Config
+# =============================================================================
+#
+# Difference from the graph-based pipeline:
+#   - env_module points to the selfboot env package
+#   - graph_builder / sft generator use "viewsuite_interactive_view_planning_selfboot"
+#   - SFT trains on selfboot_multi_turn (filtered high-reward RL trajectories)
+#     instead of graph-sampled datasets
+#
+# Usage:
+#   bash run.sh
+#   bash run.sh experiment_dir=/my/exp iterations=5
+
+hydra:
+  job:
+    chdir: false
+
+project_name: viewsuite
+experiment_name: viewsuite_interactive_view_planning_selfboot
+experiment_dir: exps/${project_name}/${experiment_name}
+initial_model_path: Qwen/Qwen2.5-VL-7B-Instruct
+iterations: 3
+
+general_overrides:
+  rl:
+    training_steps: 600
+    vagen_dir: VAGEN
+    hydra_overrides:
+      data:
+        max_prompt_length: 4000
+        max_response_length: 10000
+        train_batch_size: 128
+        train_files: null
+        val_files: null
+        eval_files: null
+      algorithm:
+        adv_estimator: gae
+        kl_ctrl:
+          kl_coef: 0.0
+      actor_rollout_ref:
+        model:
+          use_remove_padding: true
+          use_fused_kernels: true
+        actor:
+          ppo_micro_batch_size_per_gpu: 2
+          ppo_mini_batch_size: 128
+          checkpoint:
+            save_contents: [model, hf_model, optimizer, extra]
+          fsdp_config:
+            param_offload: true
+            optimizer_offload: true
+        rollout:
+          log_prob_micro_batch_size_per_gpu: 2
+          tensor_model_parallel_size: 1
+          mode: async
+          max_num_batched_tokens: 32768
+          gpu_memory_utilization: 0.6
+          enforce_eager: true
+          disable_log_stats: false
+          agent:
+            agent_loop_config_path: vagen/configs/agent.yaml
+          engine_kwargs:
+            sglang:
+              attention_backend: flashinfer
+              mm_attention_backend: triton_attn
+          n: 1
+        ref:
+          log_prob_micro_batch_size_per_gpu: 2
+          fsdp_config:
+            param_offload: true
+      critic:
+        enable: true
+        model:
+          use_remove_padding: true
+          fsdp_config:
+            param_offload: true
+            optimizer_offload: true
+        ppo_micro_batch_size_per_gpu: 2
+      trainer:
+        n_gpus_per_node: 8
+        save_freq: 20
+        test_freq: 20
+        max_actor_ckpt_to_keep: 1
+        max_critic_ckpt_to_keep: 1
+        nnodes: 1
+        skip_special_tokens_val: true
+        log_val_generations: 32
+
+  traj_to_sft:
+    module: graphrl.envs.viewsuite.viewsuite_interactive_view_planning_selfboot.SelfBootTrajToSFT
+    reward_threshold: 0.5
+
+  sft:
+    n_gpus: 8
+    hydra_overrides:
+      stage: sft
+      do_train: true
+      finetuning_type: full
+      dataset: selfboot_multi_turn
+      template: qwen2_vl
+      cutoff_len: 16384
+      preprocessing_num_workers: 16
+      per_device_train_batch_size: 2
+      gradient_accumulation_steps: 2
+      learning_rate: 1.0e-5
+      num_train_epochs: 4.0
+      weight_decay: 0.01
+      lr_scheduler_type: cosine
+      warmup_ratio: 0.1
+      bf16: true
+      flash_attn: fa2
+      logging_steps: 10
+      overwrite_output_dir: true
+      val_size: 0.2
+      eval_strategy: epoch
+      per_device_eval_batch_size: 2
+      load_best_model_at_end: true
+      metric_for_best_model: eval_loss
+      greater_is_better: false
+      save_strategy: epoch
+      save_total_limit: 5
+      trust_remote_code: true
+      deepspeed: ds_z2_config.json
+      use_fast_tokenizer: false
+
+iteration_overrides:
+  iter0:
+    rl:
+      training_steps: 61
+    sft:
+      hydra_overrides:
+        num_train_epochs: 3.0
+  iter1:
+    rl:
+      training_steps: 61
+    sft:
+      hydra_overrides:
+        num_train_epochs: 3.0
+  iter2:
+    rl:
+      training_steps: 61
+    sft:
+      hydra_overrides:
+        num_train_epochs: 3.0
+  iter3:
+    rl:
+      training_steps: 1000
+      timeout: 259200  # 72h — long-horizon iter, default 24h is not enough
+      hydra_overrides:
+        huggingface_hub:
+          hf_save_freq: null
+          repo_id: null
+          private: false

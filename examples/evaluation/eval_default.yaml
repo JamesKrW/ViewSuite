@@ -1,0 +1,147 @@
+# ── ViewSuite Evaluation Default Config ──────────────────────────────
+# Base config for ViewSuite benchmark evaluations.
+#
+# Usage: create a per-model config that inherits from this file:
+#
+#   defaults:
+#     - eval_default                          # for configs in evaluation/
+#     - ../eval_default                       # for configs in evaluation/subdir/
+#
+#   default_chat_config:                      # override chat params for all envs
+#     temperature: 0.0
+#     max_tokens: 10000
+#
+#   experiment:
+#     dump_dir: ${fileroot}/rollouts/my_model
+#
+#   backends:
+#     openai:
+#       model: "anthropic/claude-opus-4.6"
+#
+# Only override the fields you need to change.
+# ─────────────────────────────────────────────────────────────────────
+
+fileroot: ${oc.env:VIEWSUITE_ROOT}
+
+default_chat_config:
+  temperature: 0.0
+  max_tokens: 1024
+  top_p: 1.0
+
+envs:
+
+  - name: Path2View
+    n_envs: 530
+    tag_id: path_to_view
+    seed: [1,530,1]
+    split: test
+    max_turns: 1
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/path_to_view_test_filter.jsonl
+      image_size: [512,512]
+      format: eval_mode
+      example_count: 0
+
+  - name: View2Path
+    n_envs: 530
+    tag_id: view_to_path
+    seed: [1,530,1]
+    split: test
+    max_turns: 1
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/view_to_path_test_filter.jsonl
+      image_size: [512,512]
+      format: eval_mode
+      example_count: 0
+
+  - name: InteractiveViewPlanning
+    n_envs: 530
+    tag_id: interactive_view_planning
+    seed: [1,530,1]
+    split: test
+    max_turns: 10
+    config:
+      jsonl_path: ${fileroot}/data/viewsuite_5k/interactive_view_planning_test_filter.jsonl
+      max_turns: 10
+      render_backend: client
+      client_url_file_path: ${fileroot}/client_url.txt
+      image_size: [512,512]
+      format: eval_mode
+      use_example_in_sys_prompt: false
+      action_only_mode: true
+
+experiment:
+  dump_dir: ${fileroot}/rollouts/default
+  default_max_turns: 1
+
+run:
+  backend: "openai"
+  base_seed: 0
+  max_concurrent_jobs: 24
+  resume: skip_completed
+  live_summary: true
+
+backends:
+  openai:
+    api_key: ""               # or export OPENAI_API_KEY
+    base_url: null
+    model: "gpt-4o"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  azure:
+    azure_endpoint: ""        # or export AZURE_OPENAI_ENDPOINT
+    azure_api_key: ""         # or export AZURE_API_KEY
+    azure_api_version: "2024-12-01-preview"
+    deployment: "gpt-5"
+    model: ${backends.azure.deployment}
+    max_concurrency: 4
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  sglang:
+    base_url: "http://127.0.0.1:30000/v1"
+    api_key: "EMPTY"
+    model: ""
+    max_concurrency: 2
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  vllm:
+    base_url: "http://127.0.0.1:8000/v1"
+    api_key: "EMPTY"
+    model: ""
+    max_concurrency: 2
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  together:
+    base_url: "https://api.together.xyz/v1"
+    api_key: ""               # or export TOGETHER_API_KEY
+    model: "meta-llama/Llama-3.1-8B-Instruct-Turbo"
+    max_concurrency: 2
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  claude:
+    api_key: ""               # or export ANTHROPIC_API_KEY
+    base_url: null
+    model: "claude-sonnet-4-5"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
+
+  gemini:
+    api_key: ""               # or export GEMINI_API_KEY
+    model: "gemini-2.5-pro"
+    max_concurrency: 24
+    max_retries: 6
+    min_backoff: 0.5
+    max_backoff: 8.0
